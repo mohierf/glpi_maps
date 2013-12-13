@@ -132,8 +132,9 @@ mapInit = function() {
 	if (hostsInfo == undefined) return false;
 	
 	Ext.Loader.load([ debugJs ? '../plugins/maps/google/markerclusterer.js' : '../plugins/maps/google/markerclusterer_packed.js' ], function() {
+		if (debugJs) console.log('Google marker clusterer API loaded ...');
 		Ext.Loader.load([ '../plugins/maps/google/markerwithlabel.js' ], function() {
-			if (debugJs) console.log('Google marker clusterer API loaded ...');
+			if (debugJs) console.log('Google labeled marker API loaded ...');
 			
 			map = new google.maps.Map(document.getElementById('map'),{
 				center: new google.maps.LatLng (defLat, defLng),
