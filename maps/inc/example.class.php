@@ -149,14 +149,14 @@ echo '<script>
                `glpi_computers`.*
                , `glpi_computers`.`id` AS id_Host
                , `glpi_plugin_monitoring_hosts`.*
-               , `glpi_plugin_monitoring_componentscatalogs_hosts`.`id` AS id_monitoring
+               , filterQuery.`id` AS id_monitoring
                , `glpi_locations`.`id` AS id_Location, `glpi_locations`.`building` AS Location
                , `glpi_states`.`id` AS id_State, `glpi_states`.`completename` AS status
                FROM `glpi_computers` 
                LEFT JOIN `glpi_locations` ON `glpi_locations`.`id` = `glpi_computers`.`locations_id` 
                LEFT JOIN `glpi_states` ON `glpi_states`.`id` = `glpi_computers`.`states_id` 
                LEFT JOIN `glpi_plugin_monitoring_hosts` ON `glpi_plugin_monitoring_hosts`.`items_id` = `glpi_computers`.`id`
-               LEFT JOIN `glpi_plugin_monitoring_componentscatalogs_hosts` ON `glpi_computers`.`id` = `glpi_plugin_monitoring_componentscatalogs_hosts`.`items_id`
+               LEFT JOIN (SELECT * FROM `glpi_plugin_monitoring_componentscatalogs_hosts` GROUP BY `items_id`) filterQuery ON `glpi_computers`.`id` = filterQuery.`items_id` 
                WHERE`glpi_computers`.`entities_id` IN (".$_SESSION['glpiactiveentities_string'].") 
                ORDER BY `name`";
       // Toolbox::logInFile("maps", "Computer query : ".$query."\n");
@@ -189,6 +189,12 @@ echo '<script>
                      FROM `glpi_plugin_monitoring_services` 
                      WHERE`glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` = (".$data['id_monitoring'].") 
                      ORDER BY `name`";
+            $query = "SELECT 
+               * 
+               FROM `glpi_plugin_monitoring_services`
+               INNER JOIN `glpi_plugin_monitoring_componentscatalogs_hosts` 
+                  ON (`glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` = `glpi_plugin_monitoring_componentscatalogs_hosts`.`id`)
+               WHERE `items_id`='47'";
             // Toolbox::logInFile("maps", "Services query : ".$query."\n");
             $result2 = $DB->query($query);
             
