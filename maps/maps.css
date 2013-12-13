@@ -1,0 +1,45 @@
+.map_container {
+	width:90%;
+	margin:auto;
+	background:#cccccc;
+	padding:20px 0px 20px 0px;
+}
+/*
+.map_container{position:absolute;width:90%;margin:auto;background:#cccccc;padding:20px 0px 20px 0px;}
+*/
+.map_container #map {
+	width:96%;
+	height:700px;
+	margin:auto;
+}
+
+.map-infoView {
+	text-align: left;
+
+	line-height:1.35;
+	overflow:hidden;
+	white-space:nowrap;
+}
+
+/* Computer image in infoview */
+.map-iconstate {
+	width: 32px;
+}
+/* Computer hostname in infoview */
+.map-hostname {
+/*
+	margin-left: 20px;
+*/
+	padding: 10px;
+}
+
+
+.labels {
+   color: red;
+   background-color: white;
+   font-size: 10px;
+   font-weight: bold;
+   text-align: center;
+   width: 100px;
+   white-space: nowrap;
+ }
