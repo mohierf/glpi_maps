@@ -157,7 +157,7 @@ echo '<script>
                LEFT JOIN `glpi_states` ON `glpi_states`.`id` = `glpi_computers`.`states_id` 
                LEFT JOIN `glpi_plugin_monitoring_hosts` ON `glpi_plugin_monitoring_hosts`.`items_id` = `glpi_computers`.`id`
                LEFT JOIN (SELECT * FROM `glpi_plugin_monitoring_componentscatalogs_hosts` GROUP BY `items_id`) filterQuery ON `glpi_computers`.`id` = filterQuery.`items_id` 
-               WHERE`glpi_computers`.`entities_id` IN (".$_SESSION['glpiactiveentities_string'].") 
+               WHERE `glpi_computers`.`entities_id` IN (".$_SESSION['glpiactiveentities_string'].") 
                ORDER BY `name`";
       // Toolbox::logInFile("maps", "Computer query : ".$query."\n");
       $result = $DB->query($query);
@@ -184,11 +184,19 @@ echo '<script>
             // Toolbox::logInFile("maps", "Computer monitoring id  : ".$data['id_monitoring']."\n");
             $data['monitoring'] = True;
             
+/*
             $query = "SELECT 
                      `glpi_plugin_monitoring_services`.*
                      FROM `glpi_plugin_monitoring_services` 
-                     WHERE`glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` = (".$data['id_monitoring'].") 
+                     WHERE `glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` = (".$data['id_monitoring'].") 
                      ORDER BY `name`";
+*/
+            $query = "SELECT 
+                     `glpi_plugin_monitoring_services`.*
+                     FROM `glpi_plugin_monitoring_services` 
+                     WHERE `glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` IN (SELECT id FROM `glpi_plugin_monitoring_componentscatalogs_hosts` WHERE `glpi_plugin_monitoring_componentscatalogs_hosts`.items_id ='".$data['id_Host']."') 
+                     ORDER BY `name`";
+                     
            // Toolbox::logInFile("maps", "Services query : ".$query."\n");
             $result2 = $DB->query($query);
             
