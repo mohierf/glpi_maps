@@ -163,7 +163,7 @@ function plugin_init_maps() {
 function plugin_version_maps() {
 
    return array('name'           => 'Plugin Maps',
-                'version'        => '0.1',
+                'version'        => '0.2',
                 'author'         => 'Frédéric MOHIER',
                 'license'        => 'GPLv2+',
                 'homepage'       => 'https://forge.indepnet.net/projects/maps',
