@@ -1,7 +1,9 @@
 // -- coding: utf-8 --
-// JavaScript Document
+// Google API not yet loaded ...
 var apiLoaded=false;
-var debugJs=false;
+var apiLoading=false;
+// Set true to activate javascript console logs
+var debugJs=true;
 
 var map;
 var infoWindow;
@@ -44,6 +46,7 @@ function mapLoad() {
 	if (debugJs) console.log('mapLoad');
 
 	if (! apiLoaded) {
+		apiLoading=true;
 		var script = document.createElement("script");
 		script.type = "text/javascript";
 		script.src = "http://maps.googleapis.com/maps/api/js?sensor=false&callback=mapInit";
@@ -55,16 +58,17 @@ function mapLoad() {
 
 // marker initialization
 // point : GPS coordinates
-// host : host object containing data
+// name : host name
+// state : host state
 // content : infoWindow content
 //------------------------------------------------------------------------------
-markerCreate = function(point, host, content, icon) {
-	if (debugJs) console.log("markerCreate : "+host.name);
-	if (icon == undefined) icon='marque';
-	var iconUrl=urlImages+icon+"-"+host.state+".png";
-	if (debugJs) console.log("markerCreate : "+iconUrl);
+markerCreate = function(point, name, state, content, iconBase) {
+	// if (debugJs) console.log("markerCreate for "+name+", state : "+state);
 
-	// var url = customIcons[host.state] || { url: marqueViolette };
+	var iconUrl=urlImages+iconBase+"-"+state+".png";
+	if (state == '') iconUrl=urlImages+iconBase+".png";
+	// if (debugJs) console.log("markerCreate, icon URL : "+iconUrl);
+	
 	var image = new google.maps.MarkerImage(iconUrl, new google.maps.Size(32,32), new google.maps.Point(0,0), new google.maps.Point(16,32));
 
 	// Manage markers on the same position ...
@@ -84,43 +88,50 @@ markerCreate = function(point, host, content, icon) {
 		}
 	}
 
-/* Standard Google maps marker
-	var marker = new google.maps.Marker({
-		map: map, position: point, raiseOnDrag: false,
-		icon: image, 
-		animation: google.maps.Animation.DROP,
-		title: host.name
-	});
-*/
-	// Marker with label ...
-	var marker = new MarkerWithLabel({
-		map: map, position: point,
-		icon: image, 
-		raiseOnDrag: false, draggable: true,
+	try {
+	/* Standard Google maps marker
+		var marker = new google.maps.Marker({
+			map: map, position: point, raiseOnDrag: false,
+			icon: image, 
+			animation: google.maps.Animation.DROP,
+			title: host.name
+		});
+	*/
+		// Marker with label ...
+		var marker = new MarkerWithLabel({
+			map: map, position: point,
+			icon: image, 
+			raiseOnDrag: false, draggable: true,
+			title: name,
+			hoststate: state,
+			hostname: name,
 
-		labelContent: host.name,
-		// Half the CSS width
-		labelAnchor: new google.maps.Point(50, 10),
-		labelClass: "labels", // the CSS class for the label
-		labelStyle: {opacity: 0.50},
-		title: host.name
-	});
+			// Half the CSS width to get a centered label ...
+			labelAnchor: new google.maps.Point(50, 10),
+			labelClass: "labels",
+			labelContent: name,
+			labelStyle: {opacity: 0.50}
+		});
+		
+		google.maps.event.addListener(marker, 'click', function () {
+			infoWindow.setContent(content);
+			infoWindow.open(map, marker);
+		});
+		
 
-	google.maps.event.addListener(marker, 'click', function () {
-		infoWindow.setContent(content);
-		infoWindow.open(map, marker);
-	});
+		// Register Custom "dragend" Event
+		google.maps.event.addListener(marker, 'dragend', function() {
+			// Get the Current position, where the pointer was dropped
+			var point = marker.getPosition();
+			// Center the map at given point
+			map.panTo(point);
+			// Update the textbox (if needed ...)
+			// document.getElementById('txt_latlng').value=point.lat()+", "+point.lng();
+		});
 	
-
-	// Register Custom "dragend" Event
-	google.maps.event.addListener(marker, 'dragend', function() {
-		// Get the Current position, where the pointer was dropped
-		var point = marker.getPosition();
-		// Center the map at given point
-		map.panTo(point);
-		// Update the textbox
-		document.getElementById('txt_latlng').value=point.lat()+", "+point.lng();
-	});
+	} catch (e) {
+		if (debugJs) console.error('markerCreate, exception : '+e.message);
+	}
 	
 	return marker;
 }
@@ -129,7 +140,19 @@ markerCreate = function(point, host, content, icon) {
 // Global hostsInfo needs to be defined before calling this function
 // This function is a callback called after Google maps API is fully loaded
 mapInit = function() {
-	if (hostsInfo == undefined) return false;
+	if (debugJs) console.log('mapInit ...');
+	if (apiLoading) {
+		apiLoaded=true;
+	}
+	if (! apiLoaded) {
+		console.error('Google Maps API not loaded. Call mapLoad function ...');
+		return false;
+	}
+	
+	if (hostsInfo == undefined) {
+		console.error('Hosts information are not available. Set hostsInfo array content before calling this function ...');
+		return false;
+	}
 	
 	Ext.Loader.load([ debugJs ? '../plugins/maps/google/markerclusterer.js' : '../plugins/maps/google/markerclusterer_packed.js' ], function() {
 		if (debugJs) console.log('Google marker clusterer API loaded ...');
@@ -147,24 +170,56 @@ mapInit = function() {
 			var bounds = new google.maps.LatLngBounds();
 			for (var index = 0; index < hostsInfo.length; ++index) {
 				var host = hostsInfo[index];
+				var hostState = host.state.toUpperCase();
+				var hostGlobalState = -1;
 				var gpsLocation = new google.maps.LatLng(host.lat, host.lng);
-				var iconBase='marque';
-				if (debugJs) console.log('host '+host.name+' is '+host.state+', located here : '+gpsLocation);
+				var iconBase='host';
+				// if (debugJs) console.log('host '+host.name+' is '+hostState+', located here : '+gpsLocation);
+				if (hostState != 'UP') console.error('host '+host.name+' is '+hostState+', located here : '+gpsLocation);
 
 				if (host.monitoring && host.monitoring == true) {
-					iconBase='point';
+					iconBase='host-monitored';
+					
+					switch(hostState) {
+						case "UP":
+							hostGlobalState=0;
+							break;
+						case "DOWN":
+							hostGlobalState=2;
+							break;
+						default:
+							hostGlobalState=1;
+							break;
+					}
+					// if (debugJs) console.log('-> host global state : '+hostGlobalState);
+					
 					var infoViewContent = 
 						'<div class="map-infoView" id="iw-'+host.name+'">'+
-						'<img class="map-iconstate" src="../plugins/maps/pics/Kiosk-'+host.state+'.png" />'+
+						'<img class="map-iconstate" src="../plugins/maps/pics/Kiosk-'+hostState+'.png" />'+
 						'<span class="map-hostname">'+'<a href="'+host.link+'">'+host.name+'</a>'+' is '+host.state+'.</span>'+
 						'<hr/>';
 					if (host.services != undefined) {
-						infoViewContent += '<ul>';
+						infoViewContent += '<ul class="map-servicesList">';
 						for (var idxServices = 0; idxServices < host.services.length; ++idxServices) {
 							var service = host.services[idxServices];
-							if (debugJs) console.log(' - service '+service.name+' is '+service.state);
-							// console.log(service);
-							infoViewContent += '<li class="map-service">'+service.name+' is '+service.state+'.</li>';
+							var serviceState = service.state.toUpperCase();
+							// if (debugJs) console.log(' - service '+service.name+' is '+serviceState);
+							if (serviceState != 'OK') console.error(' - service '+service.name+' is '+serviceState);
+							infoViewContent += '<li><span class="map-service map-service-'+serviceState+'">&nbsp;</span>'+service.name+' is '+serviceState+'.</li>';
+							
+							switch(serviceState) {
+								case "OK":
+									break;
+								case "UNKNOWN":
+								case "PENDING":
+								case "WARNING":
+									if (hostGlobalState < 1) hostGlobalState=1;
+									break;
+								case "CRITICAL":
+									if (hostGlobalState < 2) hostGlobalState=2;
+									break;
+							}
+							// if (debugJs) console.log('-> host global state : '+hostGlobalState);
 						}
 						infoViewContent += '</ul>';
 					}
@@ -178,11 +233,61 @@ mapInit = function() {
 				}
 				
 				// Create a marker ...
-				allMarkers.push(markerCreate(gpsLocation, host, infoViewContent, iconBase));
+				var markerState = "UNKNOWN";
+				switch(hostGlobalState) {
+					case -1:
+						markerState = "";
+						break;
+					case 0:
+						markerState = "OK";
+						break;
+					case 2:
+						markerState = "KO";
+						break;
+					default:
+						markerState = "WARNING";
+						break;
+				}
+				allMarkers.push(markerCreate(gpsLocation, host.name, markerState, infoViewContent, iconBase));
 				bounds.extend(gpsLocation);
 			}
 			map.fitBounds(bounds);
 			
+			var mcOptions = {
+				zoomOnClick: true, showText: true, averageCenter: true, gridSize: 40, minimumClusterSize: 5, 
+				styles: [
+					{ height: 50, width: 50, url: urlImages+"cluster-OK.png" },
+					{ height: 60, width: 60, url: urlImages+"cluster-WARNING.png" },
+					{ height: 60, width: 60, url: urlImages+"cluster-KO.png" }
+				]
+				,
+				calculator: function(markers, numStyles) {
+					// Manage markers in the cluster ...
+					if (debugJs) console.log("marker, count : "+markers.length);
+					if (debugJs) console.log(markers);
+					var clusterIndex = 1;
+					for (i=0; i < markers.length; i++) {
+						var currentMarker = markers[i];
+						if (debugJs) console.log("marker, "+currentMarker.hostname+" state is : "+currentMarker.hoststate);
+						// if (debugJs) console.log(currentMarker);
+						switch(currentMarker.hoststate.toUpperCase()) {
+							case "OK":
+								break;
+							case "WARNING":
+								if (clusterIndex < 2) clusterIndex=2;
+								break;
+							case "KO":
+								if (clusterIndex < 3) clusterIndex=3;
+								break;
+						}
+					}
+
+					if (debugJs) console.log("marker, index : "+clusterIndex);
+					return {text: markers.length, index: clusterIndex};
+				}
+			};
+			var markerCluster = new MarkerClusterer(map, allMarkers, mcOptions);
+/*
 			var mcOptions = {
 				zoomOnClick: true, showText: true, averageCenter: true, gridSize: 40, maxZoom: 20, 
 				styles: [
@@ -194,6 +299,7 @@ mapInit = function() {
 				]
 			};
 			var markerCluster = new MarkerClusterer(map, allMarkers, mcOptions);
+*/
 /*
 			google.maps.event.addListener(markerCluster, 'clusterclick', function (mCluster) {
 				var infoViewContent = '<div class="map-infoView"><span>Marker cluster !</span><hr/></div>';
