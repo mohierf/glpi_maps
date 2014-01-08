@@ -189,13 +189,7 @@ echo '<script>
                      FROM `glpi_plugin_monitoring_services` 
                      WHERE`glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` = (".$data['id_monitoring'].") 
                      ORDER BY `name`";
-            $query = "SELECT 
-               * 
-               FROM `glpi_plugin_monitoring_services`
-               INNER JOIN `glpi_plugin_monitoring_componentscatalogs_hosts` 
-                  ON (`glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` = `glpi_plugin_monitoring_componentscatalogs_hosts`.`id`)
-               WHERE `items_id`='47'";
-            // Toolbox::logInFile("maps", "Services query : ".$query."\n");
+           // Toolbox::logInFile("maps", "Services query : ".$query."\n");
             $result2 = $DB->query($query);
             
             $data['services'] = Array();
