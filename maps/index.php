@@ -48,10 +48,9 @@
 
 include ("../../inc/includes.php");
 
-Html::header(__('Maps', 'maps'),$_SERVER["PHP_SELF"], "plugins",
-             "maps");
+Html::header(__('Computers map', 'maps'),$_SERVER["PHP_SELF"], "plugins", "maps");
 
-Html::redirect($CFG_GLPI["root_doc"]);
+Html::redirect($CFG_GLPI["root_doc"]."/plugins/maps/front/map.php");
 Html::footer();
 
 ?>

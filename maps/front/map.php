@@ -28,22 +28,20 @@
  */
 
 // ----------------------------------------------------------------------
-// Original Author of file:
-// Purpose of file:
+// Original Author of file: Frédéric MOHIER
+// Purpose of file: Display map of computers
 // ----------------------------------------------------------------------
 
 include ('../../../inc/includes.php');
 
 if ($_SESSION["glpiactiveprofile"]["interface"] == "central") {
-   Html::header("TITRE", $_SERVER['PHP_SELF'],"plugins","maps","optionname");
+   Html::header(__('Computers map', 'maps'), $_SERVER['PHP_SELF'],"plugins","maps");
 } else {
-   Html::helpHeader("TITRE", $_SERVER['PHP_SELF']);
+   Html::helpHeader(__('Computers map', 'maps'), $_SERVER['PHP_SELF']);
 }
 
-
-checkTypeRight('PluginMapsExample',"r");
-
-Search::show('PluginMapsExample');
+PluginMapsProfile::checkRight('mainpage','r');
+PluginMapsMap::showMap();
 
 Html::footer();
 ?>

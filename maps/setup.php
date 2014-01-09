@@ -45,113 +45,54 @@
 // Purpose of file: Plugin setup
 // ----------------------------------------------------------------------
 
+define ("PLUGIN_MAPS_VERSION","0.84+0.3");
+
 // Init the hooks of the plugins -Needed
 function plugin_init_maps() {
    global $PLUGIN_HOOKS,$CFG_GLPI;
 
-   // Params : plugin name - string type - ID - Array of attributes
-   Plugin::registerClass('PluginMapsDropdown');
-
-   Plugin::registerClass('PluginMapsExample',
+   // Map class
+   Plugin::registerClass('PluginMapsMap',
                          array('notificationtemplates_types' => true,
-                               'addtabon'                    => array('Central', 'Preference')));
+                               'addtabon'                    => array('Central')));
 
+   // Plugin profile management class
    Plugin::registerClass('PluginMapsProfile',
         array('addtabon' => array('Profile')));
         
    // Display a menu entry ?
    if (isset($_SESSION["glpi_plugin_maps_profile"])) { // Right set in change_profile hook
-      $PLUGIN_HOOKS['menu_entry']['maps'] = 'front/example.php';
-
+      // Plugins main menu ...
+      $PLUGIN_HOOKS['menu_entry']['maps'] = 'front/map.php';
       $PLUGIN_HOOKS['menu_entry']['maps'] = true;
       
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['title'] = "Search";
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['page']  = '/plugins/maps/front/example.php';
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['links']['search'] = '/plugins/maps/front/example.php';
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['links']['add']    = '/plugins/maps/front/example.form.php';
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['links']['config'] = '/plugins/maps/index.php';
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['links']["<img  src='".$CFG_GLPI["root_doc"]."/pics/menu_showall.png' title='".__s('Show all')."' alt='".__s('Show all')."'>"] = '/plugins/maps/index.php';
-      $PLUGIN_HOOKS['submenu_entry']['maps']['options']['optionname']['links'][__s('Test link', 'maps')] = '/plugins/maps/index.php';
-
-      $PLUGIN_HOOKS["helpdesk_menu_entry"]['maps'] = true;
+      // No menu in helpdesk interface ...
+      $PLUGIN_HOOKS["helpdesk_menu_entry"]['maps'] = false;
    }
 
    // Configure current profile ...
    $PLUGIN_HOOKS['change_profile']['maps'] = array('PluginMapsProfile','changeprofile');
    
-/*
-   // Config page ... not needed.
+   // Config page ... actually, simple redirect to plugins page.
    if (Session::haveRight('config','w')) {
       $PLUGIN_HOOKS['config_page']['maps'] = 'config.php';
    }
-*/
-
-/*
-   // Item action event // See define.php for defined ITEM_TYPE
-   $PLUGIN_HOOKS['pre_item_update']['maps'] = array('Computer' => 'plugin_pre_item_update_maps');
-   $PLUGIN_HOOKS['item_update']['maps']     = array('Computer' => 'plugin_item_update_maps');
-
-   $PLUGIN_HOOKS['item_empty']['maps']     = array('Computer' => 'plugin_item_empty_maps');
-
-   // Example using a method in class
-   $PLUGIN_HOOKS['pre_item_add']['maps']    = array('Computer' => array('PluginMapsExample',
-                                                                           'pre_item_add_computer'));
-   $PLUGIN_HOOKS['post_prepareadd']['maps'] = array('Computer' => array('PluginMapsExample',
-                                                                           'post_prepareadd_computer'));
-   $PLUGIN_HOOKS['item_add']['maps']        = array('Computer' => array('PluginMapsExample',
-                                                                           'item_add_computer'));
-
-   $PLUGIN_HOOKS['pre_item_delete']['maps'] = array('Computer' => 'plugin_pre_item_delete_maps');
-   $PLUGIN_HOOKS['item_delete']['maps']     = array('Computer' => 'plugin_item_delete_maps');
-
-   // Example using the same function
-   $PLUGIN_HOOKS['pre_item_purge']['maps'] = array('Computer' => 'plugin_pre_item_purge_maps',
-                                                      'Phone'    => 'plugin_pre_item_purge_maps');
-   $PLUGIN_HOOKS['item_purge']['maps']     = array('Computer' => 'plugin_item_purge_maps',
-                                                      'Phone'    => 'plugin_item_purge_maps');
-
-   // Example with 2 different functions
-   $PLUGIN_HOOKS['pre_item_restore']['maps'] = array('Computer' => 'plugin_pre_item_restore_maps',
-                                                         'Phone'   => 'plugin_pre_item_restore_maps2');
-   $PLUGIN_HOOKS['item_restore']['maps']     = array('Computer' => 'plugin_item_restore_maps');
-
-   // Add event to GLPI core itemtype, event will be raised by the plugin.
-   // See plugin_maps_uninstall for cleanup of notification
-   $PLUGIN_HOOKS['item_get_events']['maps']
-                                 = array('NotificationTargetTicket' => 'plugin_maps_get_events');
-
-   // Add datas to GLPI core itemtype for notifications template.
-   $PLUGIN_HOOKS['item_get_datas']['maps']
-                                 = array('NotificationTargetTicket' => 'plugin_maps_get_datas');
-
-   $PLUGIN_HOOKS['item_transfer']['maps'] = 'plugin_item_transfer_maps';
-*/
 
    //redirect
    // Simple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_2 (ID 2 du form)
    // $PLUGIN_HOOKS['redirect_page']['maps'] = 'maps.form.php';
    // Multiple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_one_2 (ID 2 du form)
    // Multiple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_two_2 (ID 2 du form)
-   $PLUGIN_HOOKS['redirect_page']['maps']['one'] = 'example.form.php';
-   $PLUGIN_HOOKS['redirect_page']['maps']['two'] = 'example2.form.php';
-
-   // Massive Action definition
-   // $PLUGIN_HOOKS['use_massive_action']['maps'] = 1;
-
-   // $PLUGIN_HOOKS['assign_to_ticket']['maps'] = 1;
+   // $PLUGIN_HOOKS['redirect_page']['maps']['one'] = 'example.form.php';
+   // $PLUGIN_HOOKS['redirect_page']['maps']['two'] = 'example2.form.php';
 
    // Add specific files to add to the header : javascript or css
-   $PLUGIN_HOOKS['add_javascript']['maps'] = 'maps.js';
-   $PLUGIN_HOOKS['add_css']['maps']        = 'maps.css';
+   $PLUGIN_HOOKS['add_javascript']['maps'] = 'javascript/maps.js';
+   $PLUGIN_HOOKS['add_css']['maps']        = 'javascript/maps.css';
 
-   // request more attributes from ldap
-   //$PLUGIN_HOOKS['retrieve_more_field_from_ldap']['maps']="plugin_retrieve_more_field_from_ldap_maps";
-
-   // Retrieve others datas from LDAP
-   //$PLUGIN_HOOKS['retrieve_more_data_from_ldap']['maps']="plugin_retrieve_more_data_from_ldap_maps";
-
-   $PLUGIN_HOOKS['post_init']['maps'] = 'plugin_maps_postinit';
-
+   // All plugins are initialized ... nothing to do.
+   // $PLUGIN_HOOKS['post_init']['maps'] = 'plugin_maps_postinit';
+   // Plugin status
    $PLUGIN_HOOKS['status']['maps'] = 'plugin_maps_Status';
    
    // CSRF compliance : All actions must be done via POST and forms closed by Html::closeForm();
@@ -159,11 +100,11 @@ function plugin_init_maps() {
 }
 
 
-// Get the name and the version of the plugin - Needed
+// Get the name and the version of the plugin
 function plugin_version_maps() {
 
    return array('name'           => 'Plugin Maps',
-                'version'        => '0.3',
+                'version'        => PLUGIN_MAPS_VERSION,
                 'author'         => 'Frédéric MOHIER',
                 'license'        => 'GPLv2+',
                 'homepage'       => 'https://forge.indepnet.net/projects/maps',
@@ -174,8 +115,8 @@ function plugin_version_maps() {
 // Optional : check prerequisites before install : may print errors or add to message after redirect
 function plugin_maps_check_prerequisites() {
 
-   // Strict version check (could be less strict, or could allow various version)
-   if (version_compare(GLPI_VERSION,'0.84','lt') /*|| version_compare(GLPI_VERSION,'0.84','gt')*/) {
+   // GLPI must be at least 0.84 ...
+   if (version_compare(GLPI_VERSION,'0.84','lt')) {
       echo "This plugin requires GLPI >= 0.84";
       return false;
    }
@@ -186,7 +127,8 @@ function plugin_maps_check_prerequisites() {
 // Check configuration process for plugin : need to return true if succeeded
 // Can display a message only if failure and $verbose is true
 function plugin_maps_check_config($verbose=false) {
-   if (true) { // Your configuration check
+   if (true) {
+      // Always true ...
       return true;
    }
 

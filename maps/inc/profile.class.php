@@ -82,8 +82,9 @@ class PluginMapsProfile extends CommonDBTM {
       if (isset($_SESSION['glpiactiveprofile']['id'])) {
          $input = array();
          $input['id'] = $_SESSION['glpiactiveprofile']['id'];
-         $input['dashboard'] = 'w';
-         $input['homepage'] = 'w';
+         $input['logs'] = 'r';
+         $input['centralpage'] = 'w';
+         $input['mainpage'] = 'w';
          $pmProfile = new self();
          $pmProfile->add($input);
       }
@@ -159,27 +160,33 @@ class PluginMapsProfile extends CommonDBTM {
       echo "<table class='tab_cadre_fixe'>";
 
       echo "<tr>";
-      echo "<th colspan='4'>".__('Maps', 'maps')." :</th>";
+      echo "<th colspan='6'>".__('Maps', 'maps')." :</th>";
       echo "</tr>";
 
       echo "<tr class='tab_bg_1'>";
       echo "<td>";
-      echo __('Dashboard', 'maps')."&nbsp;:";
+      echo __('Logs', 'maps')."&nbsp;:";
       echo "</td>";
       echo "<td>";
-      Profile::dropdownNoneReadWrite("dashboard", $this->fields["dashboard"], 1, 1, 1);
+      Profile::dropdownNoneReadWrite("logs", $this->fields["logs"], 1, 1, 1);
       echo "</td>";
       echo "<td>";
-      echo __('Home page', 'maps')."&nbsp;:";
+      echo __('Central page', 'maps')."&nbsp;:";
       echo "</td>";
       echo "<td>";
-      Profile::dropdownNoneReadWrite("homepage", $this->fields["homepage"], 1, 1, 1);
+      Profile::dropdownNoneReadWrite("centralpage", $this->fields["centralpage"], 1, 1, 1);
+      echo "</td>";
+      echo "<td>";
+      echo __('Main page', 'maps')."&nbsp;:";
+      echo "</td>";
+      echo "<td>";
+      Profile::dropdownNoneReadWrite("mainpage", $this->fields["mainpage"], 1, 1, 1);
       echo "</td>";
       echo "</tr>";
       
       if ($canedit) {
          echo "<tr>";
-         echo "<th colspan='4'>";
+         echo "<th colspan='6'>";
          echo "<input type='hidden' name='id' value='".$items_id."'/>";
          echo "<input type='submit' name='update' value=\"".__('Save')."\" class='submit'>";
          echo "</td>";

@@ -3,7 +3,7 @@
 var apiLoaded=false;
 var apiLoading=false;
 // Set true to activate javascript console logs
-var debugJs=true;
+var debugJs=false;
 
 var map;
 var infoWindow;
@@ -14,8 +14,9 @@ var defLng=5.45124;
 var defaultZoom=16;
 var currentZoom=defaultZoom;
 
-// Images dir
-var urlImages="../plugins/maps/pics/";
+// Images and scripts dir
+var imagesDir="./";
+var scriptsDir="./";
 
 // Markers ...
 var allMarkers = [];
@@ -65,8 +66,8 @@ function mapLoad() {
 markerCreate = function(point, name, state, content, iconBase) {
 	// if (debugJs) console.log("markerCreate for "+name+", state : "+state);
 
-	var iconUrl=urlImages+iconBase+"-"+state+".png";
-	if (state == '') iconUrl=urlImages+iconBase+".png";
+	var iconUrl=imagesDir+'/'+iconBase+"-"+state+".png";
+	if (state == '') iconUrl=imagesDir+'/'+iconBase+".png";
 	// if (debugJs) console.log("markerCreate, icon URL : "+iconUrl);
 	
 	var image = new google.maps.MarkerImage(iconUrl, new google.maps.Size(32,32), new google.maps.Point(0,0), new google.maps.Point(16,32));
@@ -154,9 +155,9 @@ mapInit = function() {
 		return false;
 	}
 	
-	Ext.Loader.load([ debugJs ? '../plugins/maps/google/markerclusterer.js' : '../plugins/maps/google/markerclusterer_packed.js' ], function() {
+	Ext.Loader.load([ debugJs ? scriptsDir+'/markerclusterer.js' : scriptsDir+'/markerclusterer_packed.js' ], function() {
 		if (debugJs) console.log('Google marker clusterer API loaded ...');
-		Ext.Loader.load([ '../plugins/maps/google/markerwithlabel.js' ], function() {
+		Ext.Loader.load([ debugJs ? scriptsDir+'/markerwithlabel.js' : scriptsDir+'/markerwithlabel_packed.js' ], function() {
 			if (debugJs) console.log('Google labeled marker API loaded ...');
 			
 			map = new google.maps.Map(document.getElementById('map'),{
@@ -195,7 +196,7 @@ mapInit = function() {
 					
 					var infoViewContent = 
 						'<div class="map-infoView" id="iw-'+host.name+'">'+
-						'<img class="map-iconstate" src="../plugins/maps/pics/Kiosk-'+hostState+'.png" />'+
+						'<img class="map-iconstate" src="'+imagesDir+'/Kiosk-'+hostState+'.png" />'+
 						'<span class="map-hostname">'+'<a href="'+host.link+'">'+host.name+'</a>'+' is '+host.state+'.</span>'+
 						'<hr/>';
 					if (host.services != undefined) {
@@ -256,9 +257,9 @@ mapInit = function() {
 			var mcOptions = {
 				zoomOnClick: true, showText: true, averageCenter: true, gridSize: 40, minimumClusterSize: 5, 
 				styles: [
-					{ height: 50, width: 50, url: urlImages+"cluster-OK.png" },
-					{ height: 60, width: 60, url: urlImages+"cluster-WARNING.png" },
-					{ height: 60, width: 60, url: urlImages+"cluster-KO.png" }
+					{ height: 50, width: 50, url: imagesDir+"/cluster-OK.png" },
+					{ height: 60, width: 60, url: imagesDir+"/cluster-WARNING.png" },
+					{ height: 60, width: 60, url: imagesDir+"/cluster-KO.png" }
 				]
 				,
 				calculator: function(markers, numStyles) {
@@ -287,27 +288,6 @@ mapInit = function() {
 				}
 			};
 			var markerCluster = new MarkerClusterer(map, allMarkers, mcOptions);
-/*
-			var mcOptions = {
-				zoomOnClick: true, showText: true, averageCenter: true, gridSize: 40, maxZoom: 20, 
-				styles: [
-					{ height: 53, width: 53, url: urlImages+"m1.png" },
-					{ height: 56, width: 56, url: urlImages+"m2.png" },
-					{ height: 66, width: 66, url: urlImages+"m3.png" },
-					{ height: 78, width: 78, url: urlImages+"m4.png" },
-					{ height: 90, width: 90, url: urlImages+"m5.png" }
-				]
-			};
-			var markerCluster = new MarkerClusterer(map, allMarkers, mcOptions);
-*/
-/*
-			google.maps.event.addListener(markerCluster, 'clusterclick', function (mCluster) {
-				var infoViewContent = '<div class="map-infoView"><span>Marker cluster !</span><hr/></div>';
-				 infoWindow.setContent(infoViewContent);
-				 infoWindow.setPosition(mCluster.getCenter());
-				 infoWindow.open(mCluster.getMap());
-			});
-*/
 		});
 	});
 

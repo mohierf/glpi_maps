@@ -43,11 +43,8 @@
 
 // ----------------------------------------------------------------------
 // Original Author of file:
-// Purpose of file:
+// Purpose of file: Config page for the plugin
 // ----------------------------------------------------------------------
-
-// Non menu entry case
-//header("Location:../../central.php");
 
 // Entry menu case
 define('GLPI_ROOT', '../..');
@@ -58,7 +55,11 @@ Session::checkRight("config", "w");
 // To be available when plugin in not activated
 Plugin::load('maps');
 
-Html::header("TITRE",$_SERVER['PHP_SELF'],"config","plugins");
-_e("This is the plugin config page", 'example');
+Html::header(__('Maps plugin configuration', 'maps'),$_SERVER['PHP_SELF'],"config","plugins");
+_e("This plugin does not have any configuration page", 'maps');
+Session::addMessageAfterRedirect(__('This plugin does not have any configuration page.', 'maps'));
+
+Html::redirect($CFG_GLPI["root_doc"]."/front/plugin.php");
+
 Html::footer();
 ?>
