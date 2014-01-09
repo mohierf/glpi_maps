@@ -88,6 +88,7 @@ function plugin_init_maps() {
 
    // Add specific files to add to the header : javascript or css
    $PLUGIN_HOOKS['add_javascript']['maps'] = 'javascript/maps.js';
+   // $PLUGIN_HOOKS['add_javascript']['maps'] = 'javascript/oms.min.js';
    $PLUGIN_HOOKS['add_css']['maps']        = 'javascript/maps.css';
 
    // All plugins are initialized ... nothing to do.

@@ -72,23 +72,6 @@ markerCreate = function(point, name, state, content, iconBase) {
 	
 	var image = new google.maps.MarkerImage(iconUrl, new google.maps.Size(32,32), new google.maps.Point(0,0), new google.maps.Point(16,32));
 
-	// Manage markers on the same position ...
-	for (i=0; i < allMarkers.length; i++) {
-		var existingMarker = allMarkers[i];
-		var pos = existingMarker.getPosition();
-
-        // if a marker already exists in the same position as this marker
-        if (point.equals(pos)) {
-			if (debugJs) console.log("markerCreate, same position ...");
-			
-			//update the position of the coincident marker by applying a small multipler to its coordinates
-			var newLat = point.lat() + (Math.random() -.10) / 10000;
-			var newLng = point.lng() + (Math.random() -.10) / 10000;
-			point = new google.maps.LatLng(newLat,newLng);
-			if (debugJs) console.log("markerCreate, new position is : "+point);
-		}
-	}
-
 	try {
 	/* Standard Google maps marker
 		var marker = new google.maps.Marker({
@@ -106,20 +89,14 @@ markerCreate = function(point, name, state, content, iconBase) {
 			title: name,
 			hoststate: state,
 			hostname: name,
+			iw_content: content,
 
 			// Half the CSS width to get a centered label ...
-			labelAnchor: new google.maps.Point(50, 10),
+			labelAnchor: new google.maps.Point(50, 40),
 			labelClass: "labels",
 			labelContent: name,
 			labelStyle: {opacity: 0.50}
 		});
-		
-		google.maps.event.addListener(marker, 'click', function () {
-			infoWindow.setContent(content);
-			infoWindow.open(map, marker);
-		});
-		
-
 		// Register Custom "dragend" Event
 		google.maps.event.addListener(marker, 'dragend', function() {
 			// Get the Current position, where the pointer was dropped
@@ -154,140 +131,181 @@ mapInit = function() {
 		console.error('Hosts information are not available. Set hostsInfo array content before calling this function ...');
 		return false;
 	}
-	
-	Ext.Loader.load([ debugJs ? scriptsDir+'/markerclusterer.js' : scriptsDir+'/markerclusterer_packed.js' ], function() {
-		if (debugJs) console.log('Google marker clusterer API loaded ...');
-		Ext.Loader.load([ debugJs ? scriptsDir+'/markerwithlabel.js' : scriptsDir+'/markerwithlabel_packed.js' ], function() {
-			if (debugJs) console.log('Google labeled marker API loaded ...');
-			
-			map = new google.maps.Map(document.getElementById('map'),{
-				center: new google.maps.LatLng (defLat, defLng),
-				zoom: defaultZoom,
-				mapTypeId: google.maps.MapTypeId.ROADMAP
-			});
+	// "Spiederify" close markers : https://github.com/jawj/OverlappingMarkerSpiderfier
+	Ext.Loader.load([ scriptsDir+'/oms.min.js' ], function() {
+		if (debugJs) console.log('Spiderify API loaded ...');
+		Ext.Loader.load([ debugJs ? scriptsDir+'/markerclusterer.js' : scriptsDir+'/markerclusterer_packed.js' ], function() {
+			if (debugJs) console.log('Google marker clusterer API loaded ...');
+			Ext.Loader.load([ debugJs ? scriptsDir+'/markerwithlabel.js' : scriptsDir+'/markerwithlabel_packed.js' ], function() {
+				if (debugJs) console.log('Google labeled marker API loaded ...');
+				
+				map = new google.maps.Map(document.getElementById('map'),{
+					center: new google.maps.LatLng (defLat, defLng),
+					zoom: defaultZoom,
+					mapTypeId: google.maps.MapTypeId.ROADMAP
+				});
 
-			infoWindow = new google.maps.InfoWindow;
-			
-			var bounds = new google.maps.LatLngBounds();
-			for (var index = 0; index < hostsInfo.length; ++index) {
-				var host = hostsInfo[index];
-				var hostState = host.state ? host.state.toUpperCase() : '';
-				var hostGlobalState = -1;
-				var gpsLocation = new google.maps.LatLng(host.lat, host.lng);
-				var iconBase='host';
-				// if (debugJs) console.log('host '+host.name+' is '+hostState+', located here : '+gpsLocation);
-				if (hostState != 'UP') console.error('host '+host.name+' is '+hostState+', located here : '+gpsLocation);
+				infoWindow = new google.maps.InfoWindow;
+				
+				var bounds = new google.maps.LatLngBounds();
+				for (var index = 0; index < hostsInfo.length; ++index) {
+					var host = hostsInfo[index];
+					var hostState = host.state ? host.state.toUpperCase() : '';
+					var hostGlobalState = -1;
+					var gpsLocation = new google.maps.LatLng(host.lat, host.lng);
+					var iconBase='host';
+					// if (debugJs) console.log('host '+host.name+' is '+hostState+', located here : '+gpsLocation);
+					if (hostState != 'UP') console.error('host '+host.name+' is '+hostState+', located here : '+gpsLocation);
 
-				if (host.monitoring && host.monitoring == true) {
-					iconBase='host-monitored';
+					if (host.monitoring && host.monitoring == true) {
+						iconBase='host-monitored';
+						
+						switch(hostState) {
+							case "UP":
+								hostGlobalState=0;
+								break;
+							case "DOWN":
+								hostGlobalState=2;
+								break;
+							default:
+								hostGlobalState=1;
+								break;
+						}
+						// if (debugJs) console.log('-> host global state : '+hostGlobalState);
+						
+						var infoViewContent = 
+							'<div class="map-infoView" id="iw-'+host.name+'">'+
+							'<img class="map-iconstate" src="'+imagesDir+'/Kiosk-'+hostState+'.png" />'+
+							'<span class="map-hostname">'+'<a href="'+host.link+'">'+host.name+'</a>'+' is '+host.state+'.</span>'+
+							'<hr/>';
+						if (host.services != undefined) {
+							infoViewContent += '<ul class="map-servicesList">';
+							for (var idxServices = 0; idxServices < host.services.length; ++idxServices) {
+								var service = host.services[idxServices];
+								var serviceState = service.state.toUpperCase();
+								// if (debugJs) console.log(' - service '+service.name+' is '+serviceState);
+								if (serviceState != 'OK') console.error(' - service '+service.name+' is '+serviceState);
+								infoViewContent += '<li><span class="map-service map-service-'+serviceState+'">&nbsp;</span>'+service.name+' is '+serviceState+'.</li>';
+								
+								switch(serviceState) {
+									case "OK":
+										break;
+									case "UNKNOWN":
+									case "PENDING":
+									case "WARNING":
+										if (hostGlobalState < 1) hostGlobalState=1;
+										break;
+									case "CRITICAL":
+										if (hostGlobalState < 2) hostGlobalState=2;
+										break;
+								}
+								// if (debugJs) console.log('-> host global state : '+hostGlobalState);
+							}
+							infoViewContent += '</ul>';
+						}
+						infoViewContent += '</div>';
+					} else {
+						var infoViewContent = 
+							'<div class="map-infoView" id="iw-'+host.name+'">'+
+							'<span class="map-hostname">'+'<a href="'+host.link+'">'+host.name+'</a>'+
+							'</span>'+
+							'</div>';
+					}
 					
-					switch(hostState) {
-						case "UP":
-							hostGlobalState=0;
+					// Create a marker ...
+					var markerState = "UNKNOWN";
+					switch(hostGlobalState) {
+						case -1:
+							markerState = "";
 							break;
-						case "DOWN":
-							hostGlobalState=2;
+						case 0:
+							markerState = "OK";
+							break;
+						case 2:
+							markerState = "KO";
 							break;
 						default:
-							hostGlobalState=1;
+							markerState = "WARNING";
 							break;
 					}
-					// if (debugJs) console.log('-> host global state : '+hostGlobalState);
-					
-					var infoViewContent = 
-						'<div class="map-infoView" id="iw-'+host.name+'">'+
-						'<img class="map-iconstate" src="'+imagesDir+'/Kiosk-'+hostState+'.png" />'+
-						'<span class="map-hostname">'+'<a href="'+host.link+'">'+host.name+'</a>'+' is '+host.state+'.</span>'+
-						'<hr/>';
-					if (host.services != undefined) {
-						infoViewContent += '<ul class="map-servicesList">';
-						for (var idxServices = 0; idxServices < host.services.length; ++idxServices) {
-							var service = host.services[idxServices];
-							var serviceState = service.state.toUpperCase();
-							// if (debugJs) console.log(' - service '+service.name+' is '+serviceState);
-							if (serviceState != 'OK') console.error(' - service '+service.name+' is '+serviceState);
-							infoViewContent += '<li><span class="map-service map-service-'+serviceState+'">&nbsp;</span>'+service.name+' is '+serviceState+'.</li>';
-							
-							switch(serviceState) {
+					allMarkers.push(markerCreate(gpsLocation, host.name, markerState, infoViewContent, iconBase));
+					bounds.extend(gpsLocation);
+				}
+				map.fitBounds(bounds);
+				
+				var mcOptions = {
+					zoomOnClick: true, showText: true, averageCenter: true, gridSize: 10, minimumClusterSize: 2, maxZoom: 14,
+					styles: [
+						{ height: 50, width: 50, url: imagesDir+"/cluster-OK.png" },
+						{ height: 60, width: 60, url: imagesDir+"/cluster-WARNING.png" },
+						{ height: 60, width: 60, url: imagesDir+"/cluster-KO.png" }
+					]
+					,
+					calculator: function(markers, numStyles) {
+						// Manage markers in the cluster ...
+						if (debugJs) console.log("marker, count : "+markers.length);
+						if (debugJs) console.log(markers);
+						var clusterIndex = 1;
+						for (i=0; i < markers.length; i++) {
+							var currentMarker = markers[i];
+							if (debugJs) console.log("marker, "+currentMarker.hostname+" state is : "+currentMarker.hoststate);
+							// if (debugJs) console.log(currentMarker);
+							switch(currentMarker.hoststate.toUpperCase()) {
 								case "OK":
 									break;
-								case "UNKNOWN":
-								case "PENDING":
 								case "WARNING":
-									if (hostGlobalState < 1) hostGlobalState=1;
+									if (clusterIndex < 2) clusterIndex=2;
 									break;
-								case "CRITICAL":
-									if (hostGlobalState < 2) hostGlobalState=2;
+								case "KO":
+									if (clusterIndex < 3) clusterIndex=3;
 									break;
 							}
-							// if (debugJs) console.log('-> host global state : '+hostGlobalState);
 						}
-						infoViewContent += '</ul>';
-					}
-					infoViewContent += '</div>';
-				} else {
-					var infoViewContent = 
-						'<div class="map-infoView" id="iw-'+host.name+'">'+
-						'<span class="map-hostname">'+'<a href="'+host.link+'">'+host.name+'</a>'+
-						'</span>'+
-						'</div>';
-				}
-				
-				// Create a marker ...
-				var markerState = "UNKNOWN";
-				switch(hostGlobalState) {
-					case -1:
-						markerState = "";
-						break;
-					case 0:
-						markerState = "OK";
-						break;
-					case 2:
-						markerState = "KO";
-						break;
-					default:
-						markerState = "WARNING";
-						break;
-				}
-				allMarkers.push(markerCreate(gpsLocation, host.name, markerState, infoViewContent, iconBase));
-				bounds.extend(gpsLocation);
-			}
-			map.fitBounds(bounds);
-			
-			var mcOptions = {
-				zoomOnClick: true, showText: true, averageCenter: true, gridSize: 40, minimumClusterSize: 5, 
-				styles: [
-					{ height: 50, width: 50, url: imagesDir+"/cluster-OK.png" },
-					{ height: 60, width: 60, url: imagesDir+"/cluster-WARNING.png" },
-					{ height: 60, width: 60, url: imagesDir+"/cluster-KO.png" }
-				]
-				,
-				calculator: function(markers, numStyles) {
-					// Manage markers in the cluster ...
-					if (debugJs) console.log("marker, count : "+markers.length);
-					if (debugJs) console.log(markers);
-					var clusterIndex = 1;
-					for (i=0; i < markers.length; i++) {
-						var currentMarker = markers[i];
-						if (debugJs) console.log("marker, "+currentMarker.hostname+" state is : "+currentMarker.hoststate);
-						// if (debugJs) console.log(currentMarker);
-						switch(currentMarker.hoststate.toUpperCase()) {
-							case "OK":
-								break;
-							case "WARNING":
-								if (clusterIndex < 2) clusterIndex=2;
-								break;
-							case "KO":
-								if (clusterIndex < 3) clusterIndex=3;
-								break;
-						}
-					}
 
-					if (debugJs) console.log("marker, index : "+clusterIndex);
-					return {text: markers.length, index: clusterIndex};
+						if (debugJs) console.log("marker, index : "+clusterIndex);
+						return {text: markers.length, index: clusterIndex};
+					}
+				};
+				var markerCluster = new MarkerClusterer(map, allMarkers, mcOptions);
+
+				var usualColor = 'eebb22';
+				var spiderfiedColor = 'ffee22';
+				var iconWithColor = function(color) {
+					return 'http://chart.googleapis.com/chart?chst=d_map_xpin_letter&chld=pin|+|' + color + '|000000|ffff00';
 				}
-			};
-			var markerCluster = new MarkerClusterer(map, allMarkers, mcOptions);
+				var shadow = new google.maps.MarkerImage(
+					'https://www.google.com/intl/en_ALL/mapfiles/shadow50.png',
+					new google.maps.Size(37, 34),  // size   - for sprite clipping
+					new google.maps.Point(0, 0),   // origin - ditto
+					new google.maps.Point(10, 34)  // anchor - where to meet map location
+				);
+				var oms = new OverlappingMarkerSpiderfier(map, {markersWontMove: true, markersWontHide: true});
+				console.log(oms);
+				oms.addListener('click', function(marker) {
+					if (debugJs) console.log('click ...');
+					infoWindow.setContent(marker.iw_content);
+					infoWindow.open(map, marker);
+				});
+				oms.addListener('spiderfy', function(markers) {
+					if (debugJs) console.log('spiderfy ...');
+					// for(var i = 0; i < markers.length; i ++) {
+						// markers[i].setIcon(iconWithColor(spiderfiedColor));
+						// markers[i].setShadow(null);
+					// } 
+					infoWindow.close();
+				});
+				oms.addListener('unspiderfy', function(markers) {
+					if (debugJs) console.log('unspiderfy ...');
+					// for(var i = 0; i < markers.length; i ++) {
+						// markers[i].setIcon(iconWithColor(usualColor));
+						// markers[i].setShadow(shadow);
+					// }
+				});
+				
+				for (i=0; i < allMarkers.length; i++) {
+					oms.addMarker(allMarkers[i]);
+				}
+			});
 		});
 	});
 
