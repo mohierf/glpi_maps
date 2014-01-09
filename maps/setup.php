@@ -45,7 +45,7 @@
 // Purpose of file: Plugin setup
 // ----------------------------------------------------------------------
 
-define ("PLUGIN_MAPS_VERSION","0.84+0.3");
+define ("PLUGIN_MAPS_VERSION","0.84+1.0");
 
 // Init the hooks of the plugins -Needed
 function plugin_init_maps() {
