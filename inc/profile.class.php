@@ -93,18 +93,29 @@ class PluginMapsProfile extends CommonDBTM {
    
 
    static function changeprofile() {
-      if (isset($_SESSION['glpiactiveprofile']['id'])) {
-         $tmp = new self();
-         if ($tmp->getFromDB($_SESSION['glpiactiveprofile']['id'])) {
-            $_SESSION["glpi_plugin_maps_profile"] = $tmp->fields;
-         } else {
+      if (isset($_SESSION['glpiactiveprofile']['id']) and isset($_SESSION['glpiactiveprofile']['id'])) {
+         $pmp = new self();
+
+         $i = 0;
+         if ($pmp->getFromDB($_SESSION['glpiactiveprofile']['id'])) {
+            foreach ($pmp->fields as $key => $value) {
+               if ($key == PluginMapsProfile::getIndexName()) continue;
+               
+               if (! empty($value)) {
+                  $i++;
+                  $_SESSION["glpi_plugin_maps_profile"][$key] = $value;
+               }
+            }
+         }
+         if ($i == '0') {
             unset($_SESSION["glpi_plugin_maps_profile"]);
          }
+      } else {
+         unset($_SESSION["glpi_plugin_maps_profile"]);
       }
    }
 
-   
-   
+
    function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 
       if (Session::haveRight('profile', "r")) {
@@ -168,7 +179,7 @@ class PluginMapsProfile extends CommonDBTM {
       echo __('Logs', 'maps')."&nbsp;:";
       echo "</td>";
       echo "<td>";
-      Profile::dropdownNoneReadWrite("logs", $this->fields["logs"], 1, 1, 1);
+      Profile::dropdownNoneReadWrite("logs", $this->fields["logs"], 1, 0, 1);
       echo "</td>";
       echo "<td>";
       echo __('Central page', 'maps')."&nbsp;:";
@@ -312,13 +323,13 @@ class PluginMapsProfile extends CommonDBTM {
 
       if ($addMessAfterRedirect) {
          $profile = new Profile();
-         $profile->getFromDB($this->fields['profiles_id']);
+         $profile->getFromDB($this->fields[$this->getIndexName()]);
          // Do not display quotes
          if (isset($profile->fields['name'])) {
             $profile->fields['name'] = stripslashes($profile->fields['name']);
          } else {
             $profile->fields['name'] = $profile->getTypeName()." : ".__('ID')." ".
-                                    $profile->fields['id'];
+                                    $profile->fields[$this->getIndexName()];
          }
 
          Session::addMessageAfterRedirect(__('Item successfully updated')."&nbsp;: " .

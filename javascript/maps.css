@@ -21,6 +21,13 @@
 	white-space:nowrap;
 }
 
+div.map-infoView button {
+	width: 100%;
+	text-align: center;
+	color: red;
+	display: block;
+}
+
 /* Computer image in infoview */
 .map-iconstate {
 	width: 32px;

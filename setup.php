@@ -45,58 +45,62 @@
 // Purpose of file: Plugin setup
 // ----------------------------------------------------------------------
 
-define ("PLUGIN_MAPS_VERSION","0.84+1.1");
+define ("PLUGIN_MAPS_VERSION","0.84+1.3");
 
 // Init the hooks of the plugins -Needed
 function plugin_init_maps() {
    global $PLUGIN_HOOKS,$CFG_GLPI;
-
-   // Map class
-   Plugin::registerClass('PluginMapsMap',
-                         array('notificationtemplates_types' => true,
-                               'addtabon'                    => array('Central')));
-
-   // Plugin profile management class
-   Plugin::registerClass('PluginMapsProfile',
-        array('addtabon' => array('Profile')));
-        
-   // Display a menu entry ?
-   if (isset($_SESSION["glpi_plugin_maps_profile"])) { // Right set in change_profile hook
-      // Plugins main menu ...
-      $PLUGIN_HOOKS['menu_entry']['maps'] = 'front/map.php';
-      $PLUGIN_HOOKS['menu_entry']['maps'] = true;
-      
-      // No menu in helpdesk interface ...
-      $PLUGIN_HOOKS["helpdesk_menu_entry"]['maps'] = false;
-   }
+   
+   // CSRF compliance : All actions must be done via POST and forms closed by Html::closeForm();
+   $PLUGIN_HOOKS['csrf_compliant']['maps'] = true;
 
    // Configure current profile ...
    $PLUGIN_HOOKS['change_profile']['maps'] = array('PluginMapsProfile','changeprofile');
    
-   // Config page ... actually, simple redirect to plugins page.
-   if (Session::haveRight('config','w')) {
-      $PLUGIN_HOOKS['config_page']['maps'] = 'config.php';
+   $Plugin = new Plugin();
+   if ($Plugin->isActivated('maps')) {
+      // Map class
+      Plugin::registerClass('PluginMapsMap',
+                            array('notificationtemplates_types' => true,
+                                  'addtabon'                    => array('Central')));
+
+      // Plugin profile management class
+      Plugin::registerClass('PluginMapsProfile',
+           array('addtabon' => array('Profile')));
+           
+      // Display a menu entry ?
+      $plugin = new Plugin();
+      if (isset($_SESSION["glpi_plugin_maps_profile"])) {
+         // No plugins main menu ...
+         $PLUGIN_HOOKS['menu_entry']['maps'] = PluginMapsProfile::haveRight("mainpage", 'r');
+         
+         // No menu in helpdesk interface ...
+         $PLUGIN_HOOKS["helpdesk_menu_entry"]['maps'] = false;
+      }
+      
+      // Config page ... actually, simple redirect to plugins page.
+      if (Session::haveRight('config','w')) {
+         $PLUGIN_HOOKS['config_page']['maps'] = 'config.php';
+      }
+
+      //redirect
+      // Simple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_2 (ID 2 du form)
+      // $PLUGIN_HOOKS['redirect_page']['maps'] = 'maps.form.php';
+      // Multiple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_one_2 (ID 2 du form)
+      // Multiple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_two_2 (ID 2 du form)
+      // $PLUGIN_HOOKS['redirect_page']['maps']['one'] = 'example.form.php';
+      // $PLUGIN_HOOKS['redirect_page']['maps']['two'] = 'example2.form.php';
+
+      // Add specific files to add to the header : javascript or css
+      $PLUGIN_HOOKS['add_javascript']['maps'] = 'javascript/maps.js';
+      $PLUGIN_HOOKS['add_css']['maps']        = 'javascript/maps.css';
+
+      // All plugins are initialized ... nothing to do.
+      // $PLUGIN_HOOKS['post_init']['maps'] = 'plugin_maps_postinit';
+      // Plugin status
+      $PLUGIN_HOOKS['status']['maps'] = 'plugin_maps_Status';
    }
-
-   //redirect
-   // Simple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_2 (ID 2 du form)
-   // $PLUGIN_HOOKS['redirect_page']['maps'] = 'maps.form.php';
-   // Multiple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_one_2 (ID 2 du form)
-   // Multiple redirect : http://localhost/glpi/index.php?redirect=plugin_maps_two_2 (ID 2 du form)
-   // $PLUGIN_HOOKS['redirect_page']['maps']['one'] = 'example.form.php';
-   // $PLUGIN_HOOKS['redirect_page']['maps']['two'] = 'example2.form.php';
-
-   // Add specific files to add to the header : javascript or css
-   $PLUGIN_HOOKS['add_javascript']['maps'] = 'javascript/maps.js';
-   $PLUGIN_HOOKS['add_css']['maps']        = 'javascript/maps.css';
-
-   // All plugins are initialized ... nothing to do.
-   // $PLUGIN_HOOKS['post_init']['maps'] = 'plugin_maps_postinit';
-   // Plugin status
-   $PLUGIN_HOOKS['status']['maps'] = 'plugin_maps_Status';
-   
-   // CSRF compliance : All actions must be done via POST and forms closed by Html::closeForm();
-   $PLUGIN_HOOKS['csrf_compliant']['maps'] = true;
+   return $PLUGIN_HOOKS;
 }
 
 

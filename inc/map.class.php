@@ -1,30 +1,44 @@
 <?php
+
 /*
- * @version $Id: HEADER 15930 2011-10-25 10:47:55Z jmd $
- -------------------------------------------------------------------------
- GLPI - Gestionnaire Libre de Parc Informatique
- Copyright (C) 2003-2011 by the INDEPNET Development Team.
+   ------------------------------------------------------------------------
+   Plugin Maps for GLPI
+   Copyright (C) 2013 by IPM France - Frédéric MOHIER.
 
- http://indepnet.net/   http://glpi-project.org
- -------------------------------------------------------------------------
+   https://forge.indepnet.net/projects/maps/
+   ------------------------------------------------------------------------
 
- LICENSE
+   LICENSE
 
- This file is part of GLPI.
+   This file is part of Plugin Maps project.
 
- GLPI is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
+   Plugin Maps for GLPI is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
- GLPI is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
+   Plugin Maps for GLPI is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
 
- You should have received a copy of the GNU General Public License
- along with GLPI. If not, see <http://www.gnu.org/licenses/>.
- --------------------------------------------------------------------------
+   You should have received a copy of the GNU Affero General Public License
+   along with Maps. If not, see <http://www.gnu.org/licenses/>.
+
+   ------------------------------------------------------------------------
+
+   @package   Plugin Maps for GLPI
+   @author    Frédéric MOHIER
+   @co-author 
+   @comment   
+   @copyright Copyright (c) 2011-2013 Plugin Monitoring for GLPI team
+   @license   AGPL License 3.0 or (at your option) any later version
+              http://www.gnu.org/licenses/agpl-3.0-standalone.html
+   @link      https://forge.indepnet.net/projects/monitoring/
+   @since     2011
+ 
+   ------------------------------------------------------------------------
+   ------------------------------------------------------------------------
  */
 
 // ----------------------------------------------------------------------
@@ -101,7 +115,6 @@ class PluginMapsMap extends CommonDBTM {
             case 'Notification':
                break;
             case 'Central' :
-               Toolbox::logInFile("maps", "showMap\n");
                if (PluginMapsProfile::haveRight("centralpage", 'r')) {
                   return array(1 => __('Map', 'maps'));
                } else {
@@ -120,10 +133,10 @@ class PluginMapsMap extends CommonDBTM {
 
       switch ($item->getType()) {
          case 'Central' :
-            Toolbox::logInFile("maps", "showMap\n");
-            if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "showMap\n");
+            if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Request to show map ...\n");
             
             if (! PluginMapsProfile::haveRight("centralpage", 'r')) {
+               if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "No right in profile to show map\n");
                return '';
             }
             
@@ -173,7 +186,7 @@ class PluginMapsMap extends CommonDBTM {
       global $DB;
       global $CFG_GLPI;
 
-      if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "showMap\n");
+      if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Starting to show map ...\n");
       
       echo '<table class="tab_cadre_fixe">';
       echo '<tr class="tab_bg_1"><th colspan="3">';
@@ -200,12 +213,14 @@ class PluginMapsMap extends CommonDBTM {
       echo '<script>
          var hostsInfo = [';
          
-      $query = "SELECT 
-               `glpi_computers`.*
+         $query = "SELECT 
+               `glpi_computers`.`name` AS name
                , `glpi_computers`.`id` AS id_Host
                , `glpi_plugin_monitoring_hosts`.*
                , filterQuery.`id` AS id_monitoring
-               , `glpi_locations`.`id` AS id_Location, `glpi_locations`.`building` AS Location
+               , `glpi_locations`.`building` AS gps
+               , `glpi_locations`.`name` AS short_location
+               , `glpi_locations`.`completename` AS location
                , `glpi_states`.`id` AS id_State, `glpi_states`.`completename` AS status
                FROM `glpi_computers` 
                LEFT JOIN `glpi_locations` ON `glpi_locations`.`id` = `glpi_computers`.`locations_id` 
@@ -214,7 +229,8 @@ class PluginMapsMap extends CommonDBTM {
                LEFT JOIN (SELECT * FROM `glpi_plugin_monitoring_componentscatalogs_hosts` GROUP BY `items_id`) filterQuery ON `glpi_computers`.`id` = filterQuery.`items_id` 
                WHERE `glpi_computers`.`entities_id` IN (".$_SESSION['glpiactiveentities_string'].") 
                ORDER BY `name`";
-      // Toolbox::logInFile("maps", "Computer query : ".$query."\n");
+      if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Requesting computers to show : $query\n");
+      
       $result = $DB->query($query);
 
       $i=0;
@@ -222,43 +238,60 @@ class PluginMapsMap extends CommonDBTM {
          // Default GPS coordinates ...
          $data['lat'] = 45.054485;
          $data['lng'] = 5.081413;
-         if (! empty($data['Location'])) {
-            $split = explode(',', $data['Location']);
+         if (! empty($data['gps'])) {
+            $split = explode(',', $data['gps']);
             if (count($split) > 1) {
                // At least 2 elements, let us consider as GPS coordinates ...
-               $data['lat'] = $split[0];
-               $data['lng'] = $split[1];
+               $data['lat'] = trim($split[0]);
+               $data['lng'] = trim($split[1]);
             }
+            unset ($data['gps']);
          }
          
-         // Link to computer form ...
-         $data['link'] = $CFG_GLPI['root_doc']."/front/computer.form.php?id=".$data['id_Host'];
+         if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Computer ".$data['id_Host'].", GPS: ".$data['lat']." , ".$data['lng']."\n");
          
+         // Link to computer form ...
+         $data['link'] = $CFG_GLPI['root_doc'].
+            "/front/computer.form.php?id=".$data['id_Host'];
+         // Link to computer services ...
+         $data['linkServices'] = $CFG_GLPI['root_doc'].
+            "/plugins/monitoring/front/service.php?hidesearch=1&reset=reset".
+            "&field[0]=20&searchtype[0]=equals&contains[0]=".$data['id_Host'].
+            "&itemtype=PluginMonitoringService&start=0'";
+
          // If computer is used in monitoring plugin ...
          if (! empty($data['id_monitoring'])) {
-            // Toolbox::logInFile("maps", "Computer monitoring id  : ".$data['id_monitoring']."\n");
+            if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Computer is monitored.\n");
             $data['monitoring'] = True;
             
-            $query = "SELECT 
-                     `glpi_plugin_monitoring_services`.*
-                     FROM `glpi_plugin_monitoring_services` 
-                     WHERE `glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` IN (SELECT id FROM `glpi_plugin_monitoring_componentscatalogs_hosts` WHERE `glpi_plugin_monitoring_componentscatalogs_hosts`.items_id ='".$data['id_Host']."') 
-                     ORDER BY `name`";
-                     
-           // Toolbox::logInFile("maps", "Services query : ".$query."\n");
-            $result2 = $DB->query($query);
+
+            $query2 = "SELECT 
+               `glpi_plugin_monitoring_components`.`name`,
+               `glpi_plugin_monitoring_components`.`description`,
+               `glpi_plugin_monitoring_services`.`state`,
+               `glpi_plugin_monitoring_services`.`state_type`,
+               `glpi_plugin_monitoring_services`.`event`,
+               `glpi_plugin_monitoring_services`.`last_check`,
+               `glpi_plugin_monitoring_services`.`is_acknowledged`,
+               `glpi_plugin_monitoring_services`.`acknowledge_comment`
+               FROM `glpi_plugin_monitoring_services` 
+               INNER JOIN `glpi_plugin_monitoring_components`
+               ON (`glpi_plugin_monitoring_services`.`plugin_monitoring_components_id` = `glpi_plugin_monitoring_components`.`id`)
+               WHERE `glpi_plugin_monitoring_services`.`plugin_monitoring_componentscatalogs_hosts_id` IN (SELECT id FROM `glpi_plugin_monitoring_componentscatalogs_hosts` WHERE `glpi_plugin_monitoring_componentscatalogs_hosts`.items_id ='".$data['id_Host']."') 
+               ORDER BY `name`";
+            if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Requesting services for computer ".$data['id_Host']." : $query2\n");
+
+            $result2 = $DB->query($query2);
             
             $data['services'] = Array();
             $j=0;
             while ($data2=$DB->fetch_array($result2)) {
-               // Toolbox::logInFile("maps", "Service data : ".json_encode($data2)."\n");
+               // if (PluginMapsProfile::haveRight('logs','w')) Toolbox::logInFile("maps", "Service ".$data2['name']." is ".$data2['state'].", state : ".$data2['event']."\n");
                $data['services'][$j++] = $data2;
             }
          } else {
             $data['monitoring'] = False;
          }
-         
-         // Toolbox::logInFile("maps", "Computer data : ".json_encode($data)."\n");
 
          if ($i++ != 0) echo ',';
          
@@ -271,8 +304,16 @@ class PluginMapsMap extends CommonDBTM {
       echo '
       Ext.onReady(function(){
          // Overloading global variables defined in the maps.js script ...
-         debugJs=true; 
-         imagesDir = "' . $CFG_GLPI['root_doc']."/plugins/maps/pics" . '";
+         // debugJs:
+         //    true/false to activate debug in console.log
+            debugJs=false; 
+         // Map layer : 
+         // - "" to use google maps tiles
+         // - "OSM" to use Open street map tiles
+            mapLayer="";
+         // Directory where to find images/icons used on map 
+            imagesDir = "' . $CFG_GLPI['root_doc']."/plugins/maps/pics" . '";
+         // Directory where to find extra scripts loaded
          scriptsDir = "' . $CFG_GLPI['root_doc']."/plugins/maps/javascript" . '";
 
          Ext.Loader.load([ "http://maps.googleapis.com/maps/api/js?sensor=false&callback=mapInit" ], function() {

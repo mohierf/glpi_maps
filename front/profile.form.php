@@ -43,7 +43,7 @@
 
 // ----------------------------------------------------------------------
 // Original Author of file: Frédéric MOHIER
-// Purpose of file: Plugin profile management
+// Purpose of file: Plugin profile form
 // ----------------------------------------------------------------------
 
 
