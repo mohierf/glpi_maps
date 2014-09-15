@@ -246,11 +246,14 @@ mapInit = function() {
             case 0:
               markerState = "OK";
               break;
+            case 1:
+              markerState = "WARNING";
+              break;
             case 2:
               markerState = "KO";
               break;
             default:
-              markerState = "WARNING";
+              markerState = "";
               break;
           }
           allMarkers.push(markerCreate(host.name, markerState, infoViewContent, gpsLocation, iconBase));
